@@ -1,0 +1,170 @@
+-- Tecxas Hub - Localizador Automático de Brainots "Deus"
+-- Script completo com categorias: Player, Visual (ESP), Escritos Brainot
+-- Atualiza a lista a cada 10 segundos e toca som ao detectar novos
+
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+local LocalPlayer = Players.LocalPlayer
+local TweenService = game:GetService("TweenService")
+
+-- Lista dos Brainots "Deus"
+local brainotsGods = {
+	"tralalero tralala", "Braintosh", "Notch", "DeusBrainot", "CriadorSupremo"
+}
+
+-- Hub GUI
+local ScreenGui = Instance.new("ScreenGui", LocalPlayer:WaitForChild("PlayerGui"))
+ScreenGui.Name = "TecxasHub"
+
+local MainFrame = Instance.new("Frame", ScreenGui)
+MainFrame.Size = UDim2.new(0, 400, 0, 300)
+MainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+MainFrame.BorderSizePixel = 0
+MainFrame.Name = "MainFrame"
+
+-- Criar abas
+local Tabs = {
+	"Player", "Visual", "Escritos Brainot"
+}
+
+local CurrentTab = nil
+local TabButtons = {}
+
+-- Container de conteúdo
+local ContentFrame = Instance.new("Frame", MainFrame)
+ContentFrame.Size = UDim2.new(1, 0, 1, -30)
+ContentFrame.Position = UDim2.new(0, 0, 0, 30)
+ContentFrame.BackgroundTransparency = 1
+
+-- Top bar com botões de aba
+for i, tabName in ipairs(Tabs) do
+	local button = Instance.new("TextButton", MainFrame)
+	button.Size = UDim2.new(0, 130, 0, 30)
+	button.Position = UDim2.new(0, (i-1)*130, 0, 0)
+	button.Text = tabName
+	button.BackgroundColor3 = Color3.fromRGB(50, 50, 50)
+	button.TextColor3 = Color3.new(1,1,1)
+
+	TabButtons[tabName] = button
+	button.MouseButton1Click:Connect(function()
+		for _, child in pairs(ContentFrame:GetChildren()) do child:Destroy() end
+		CurrentTab = tabName
+		if tabName == "Player" then loadPlayerTab() end
+		if tabName == "Visual" then loadVisualTab() end
+		if tabName == "Escritos Brainot" then loadEscritosBrainotTab() end
+	end)
+end
+
+-- PLAYER TAB
+function loadPlayerTab()
+	local y = 10
+
+	local function createOption(text, callback)
+		local btn = Instance.new("TextButton", ContentFrame)
+		btn.Position = UDim2.new(0, 10, 0, y)
+		btn.Size = UDim2.new(0, 380, 0, 30)
+		btn.Text = text
+		btn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+		btn.TextColor3 = Color3.new(1,1,1)
+		btn.MouseButton1Click:Connect(callback)
+		y = y + 40
+	end
+
+	createOption("Pulo Infinito", function()
+		LocalPlayer.Character.Humanoid.JumpPower = 1000
+		LocalPlayer.Character.Humanoid.UseJumpPower = true
+	end)
+
+	createOption("Ativar Fly", function()
+		-- Fly simples
+		loadstring(game:HttpGet("https://pastebin.com/raw/kzZKZ1Yz"))()
+	end)
+
+	createOption("Resetar Posição", function()
+		LocalPlayer.Character:MoveTo(Vector3.new(0, 50, 0))
+	end)
+
+	createOption("Anti-AFK (interação a cada 5 min)", function()
+		while wait(300) do
+			VirtualInputManager:SendKeyEvent(true, Enum.KeyCode.Space, false, game)
+		end
+	end)
+end
+
+-- VISUAL TAB (ESP)
+local espEnabled = false
+function loadVisualTab()
+	local toggle = Instance.new("TextButton", ContentFrame)
+	toggle.Position = UDim2.new(0, 10, 0, 10)
+	toggle.Size = UDim2.new(0, 380, 0, 30)
+	toggle.Text = "Toggle ESP"
+	toggle.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	toggle.TextColor3 = Color3.new(1,1,1)
+
+	toggle.MouseButton1Click:Connect(function()
+		espEnabled = not espEnabled
+		if espEnabled then
+			for _, v in pairs(Workspace:GetDescendants()) do
+				if v:IsA("Model") and table.find(brainotsGods, v.Name) then
+					local billboard = Instance.new("BillboardGui", v)
+					billboard.Size = UDim2.new(0,100,0,40)
+					billboard.AlwaysOnTop = true
+					local label = Instance.new("TextLabel", billboard)
+					label.Size = UDim2.new(1,0,1,0)
+					label.Text = v.Name
+					label.BackgroundTransparency = 1
+					label.TextColor3 = Color3.new(1,1,1)
+				end
+			end
+		else
+			for _, v in pairs(Workspace:GetDescendants()) do
+				if v:FindFirstChild("BillboardGui") then
+					v.BillboardGui:Destroy()
+				end
+			end
+		end
+	end)
+end
+
+-- ESCRITOS BRAINOT TAB
+local lastDetected = {}
+function loadEscritosBrainotTab()
+	local listLabel = Instance.new("TextLabel", ContentFrame)
+	listLabel.Size = UDim2.new(1, -20, 1, -20)
+	listLabel.Position = UDim2.new(0, 10, 0, 10)
+	listLabel.BackgroundTransparency = 1
+	listLabel.TextColor3 = Color3.new(1,1,1)
+	listLabel.TextWrapped = true
+	listLabel.TextXAlignment = Enum.TextXAlignment.Left
+	listLabel.TextYAlignment = Enum.TextYAlignment.Top
+	listLabel.TextSize = 14
+
+	local function updateList()
+		local found = {}
+		for _, v in pairs(Workspace:GetDescendants()) do
+			if v:IsA("Model") and table.find(brainotsGods, v.Name) then
+				table.insert(found, v.Name)
+				if not lastDetected[v.Name] then
+					lastDetected[v.Name] = true
+					local sound = Instance.new("Sound", Workspace)
+					sound.SoundId = "rbxassetid://9118823100" -- beep
+					sound.Volume = 1
+					sound:Play()
+					delay(2, function() sound:Destroy() end)
+				end
+		end
+		listLabel.Text = "Brainots Deus no servidor:\n" .. table.concat(found, "\n")
+	end
+
+	updateList()
+	while CurrentTab == "Escritos Brainot" do
+		wait(10)
+		updateList()
+	end
+end
+
+-- Abrir aba padrão
+TabButtons["Player"]:Fire()
